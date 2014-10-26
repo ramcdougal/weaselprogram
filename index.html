@@ -19,21 +19,106 @@
                 position: absolute;
                 bottom: 0;
             }
+            .monospace {
+                font-family: "Courier New", Courier, monospace;
+            }
         </style>
         <script>
             var targettext = 'METHINKS IT IS A WEASEL';
+            var allowed_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ ";
+            
+            function mutate(string, mutation_rate) {
+                var result = "";
+                for (var i=0; i < string.length; i++) {
+                    var new_char;
+                    if (Math.random() < mutation_rate) {
+                        result += get_random_char();
+                    } else {
+                        result += string[i];
+                    }
+                }
+                return result;
+            }
+            
+            function mutation_set(string, target, generation_size, mutation_rate) {
+                var best_score = -1;
+                var best_string = '';
+                for (var i=0; i < generation_size; i++) {
+                    var new_string = mutate(string, mutation_rate);
+                    var new_score = compute_score(new_string, target);
+                    if (new_score > best_score) {
+                        best_score = new_score;
+                        best_string = new_string;
+                    }
+                }
+                return best_string;
+            }
+            
+            // getting a random string modified from
+            // http://stackoverflow.com/questions/1349404/generate-a-string-of-5-random-characters-in-javascript
+            function makeid(length) {
+                var text = "";
+                for (var i=0; i < length; i++) {
+                    text += get_random_char();
+                }
+                return text;
+            }
+            function get_random_char() {
+                return allowed_chars.charAt(Math.floor(Math.random() * allowed_chars.length));
+            }
             
             function do_analysis() {
-                console.log('go button clicked');
-            };
+                var html = "<table><tr><th>Iteration</th><th>Phrase</th><th>Score</th></tr>";
+                var target = targettext;
+                var string = makeid(target.length);
+                var score = compute_score(string, target);
+                var generation_size = $("#generationspinner").val();
+                var mutation_rate = $("#mutationspinner").val() * 0.01;
+                html += generation_row(0, string, score);
+                var i = 0;
+                while (score < target.length) {
+                    string = mutation_set(string, target, generation_size, mutation_rate);
+                    score = compute_score(string, target);
+                    i += 1;
+                    html += generation_row(i, string, score);
+                }
+                html += "</table>";
+                $('#generations').html(html);
+            }
+            
+            function generation_row(generation, string, score) {
+                // TODO: highlight matches
+                return "<tr><td style='width:5em'>" + generation + "</td><td style='width:25em' class='monospace'>" + string + "</td><td width='5em'>" + score + "</td>";
+            }
+            
+            function compute_score(test, target) {
+                var score = 0;
+                for (var i=0; i<target.length; i++) {
+                    if (test[i] == target[i]) {
+                        score++;
+                    }
+                }
+                return(score);
+            }
+            
             $(function() {
                 $('#gobutton').button().click(function(event) {
                     do_analysis();
                 });
+                $('#mutationspinner').spinner();
+                $('#generationspinner').spinner();
                 $('#targettext').val(targettext);
                 $('#targettext').keyup(function() {
                     console.log('change');
-                    targettext = $('#targettext').val().toUpperCase();
+                    var temptext = $('#targettext').val().toUpperCase();
+                    targettext = '';
+                    // remove unallowed characters
+                    for (var i=0; i < temptext.length; i++) {
+                        var c = temptext[i];
+                        if (allowed_chars.indexOf(c) >= 0)  {
+                            targettext += c;
+                        }
+                    }                    
                     $('#targettext').val(targettext);
                 });
             });
@@ -43,8 +128,9 @@
         <div class="leftcolumn" style="top:0; bottom:0">
             Text to evolve toward:
             <input type="text" id="targettext" value="" style="width:30em"></input><br/>
-            Mutation rate: 5%<br/>
-            Size of each generation: 100<br/>
+            <label for="mutationspinner">Mutation rate:</label>
+            <input id="mutationspinner" name="value" value="5"/>%<br/>
+            Size of each generation: <input id="generationspinner" name="value" value="100"/><br/>
             <button id="gobutton">Go</button>
             <div class="bottom">
                 Graphical analysis will go here.<br/>
@@ -53,7 +139,7 @@
                 as
             </div>
         </div>
-        <div class="rightcolumn" style="overflow: auto; top:0; bottom:0">
+        <div id="generations" class="rightcolumn" style="overflow: auto; top:0; bottom:0">
             Generations list
         </div>
     </body>
