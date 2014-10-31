@@ -19,6 +19,9 @@
                 position: absolute;
                 bottom: 0;
             }
+            .err {
+                color: red;
+            }
             .monospace {
                 font-family: "Courier New", Courier, monospace;
             }
@@ -75,19 +78,37 @@
                 var score = compute_score(string, target);
                 var generation_size = $("#generationspinner").val();
                 var mutation_rate = $("#mutationspinner").val() * 0.01;
-                table.append(generation_row(0, string, score));
+                table.append(generation_row(0, string, score, target));
                 var i = 0;
                 while (score < target.length) {
                     string = mutation_set(string, target, generation_size, mutation_rate);
                     score = compute_score(string, target);
                     i += 1;
-                    table.append(generation_row(i, string, score));
+                    table.append(generation_row(i, string, score, target));
                 }
             }
             
-            function generation_row(generation, string, score) {
+            function generation_row(generation, string, score, target) {
+                // highlight mismatches
+                var highlighted_string = '';
+                var inside_error = false;
+                for (var i = 0; i < target.length; i++) {
+                    if (target[i] != string[i]) {
+                        if (!inside_error) {
+                            inside_error = true;
+                            highlighted_string += '<span class="err">';
+                        }
+                    } else if (inside_error) {
+                        inside_error = false;
+                        highlighted_string += '</span>';
+                    }
+                    highlighted_string += string[i];
+                }
+                if (inside_error) {
+                    highlighted_string += '</span>';
+                }
                 // TODO: highlight matches
-                return "<tr><td style='width:5em'>" + generation + "</td><td style='width:25em' class='monospace'>" + string + "</td><td width='5em'>" + score + "</td>";
+                return "<tr><td style='width:5em'>" + generation + "</td><td style='width:25em' class='monospace'>" + highlighted_string + "</td><td width='5em'>" + score + "</td>";
             }
             
             function compute_score(test, target) {
@@ -139,13 +160,13 @@
         <div class="leftcolumn" style="top:0; bottom:0">
             <p>
                 The <a href="http://en.wikipedia.org/wiki/Weasel_program">Weasel Program</a> is a demonstration of the power of
-                evolutionary algorithms with an appropriate fitness function (i.e. survival rule). These algorithms find the solution
-                much more efficiently than non-directed random mutation.
+                evolutionary algorithms with an appropriate <a href="http://en.wikipedia.org/wiki/Fitness_function">fitness function</a> (i.e. survival rule). These algorithms find the solution
+                much more efficiently than non-directed random mutation. See <a href="http://evoinfo.org/weasel/">here</a> for more information and another simulator.
             </p>
         
             Text to evolve toward:
             <!-- learned about text-transform style from http://stackoverflow.com/questions/3724972/how-to-change-the-input-to-uppercase-as-it-is-being-typed -->
-            <input type="text" id="targettext" value="" style="width:30em; text-transform: uppercase;"></input><br/>
+            <input type="text" id="targettext" value="" type="url" style="width:30em; text-transform: uppercase;"></input><br/>
             <label for="mutationspinner">Mutation rate:</label>
             <input id="mutationspinner" name="value" value="5"/>%<br/>
             Size of each generation: <input id="generationspinner" name="value" value="100"/><br/>
