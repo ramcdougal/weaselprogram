@@ -23,6 +23,10 @@
                 position: absolute;
                 bottom: 0;
             }
+            .almostbottom {
+                position: absolute;
+                bottom: 2em;
+            }
             .err {
                 color: red;
             }
@@ -225,7 +229,10 @@
             <input id="mutationspinner" name="value" value="5"/>%<br/>
             Size of each generation: <input id="generationspinner" name="value" value="100"/><br/>
             <button id="gobutton">Go</button>
-            <div id='histogram' class="bottom" width="100%">
+            <div id='histogram' class="almostbottom" width="100%">
+            </div>
+            <div class="bottom" width="100%">
+                <a href="/">ramcdougal.com</a>
             </div>
         </div>
         <div class="rightcolumn" style="overflow: auto; top:0; bottom:1em">
