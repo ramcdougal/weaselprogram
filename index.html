@@ -4,16 +4,20 @@
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
 		<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js"></script>
         <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/themes/smoothness/jquery-ui.css" type="text/css" />
+        <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+        <script type="text/javascript">
+          google.load("visualization", "1", {packages:["corechart"]});
+        </script>
         <style>
             .leftcolumn {
                 position: absolute;
                 left: 0;
-                width: 50%                
+                width: 49%                
             }
             .rightcolumn {
                 position: absolute;
                 right: 0;
-                width: 50%
+                width: 49%
             }
             .bottom {
                 position: absolute;
@@ -57,6 +61,45 @@
                 return best_string;
             }
             
+            function do_many(target, n) {
+                counts = [];
+                for (var i = 0; i < n; i++) {
+                    counts.push(do_analysis(target));
+                }
+                return counts;
+            }
+            
+            function plot_many(target, n) {
+                var start_time = (new Date).getTime();
+                var data = [['','']];
+                var counts = do_many(target, n);
+
+                // ensures the boxes appear in a reasonable order on the stack
+                // in the histogram
+                counts.sort();
+                
+                for (var i = 0; i < n; i++) {
+                    data.push(['', counts[i]]);
+                }
+                var end_time = (new Date).getTime();
+                data = google.visualization.arrayToDataTable(data);
+                var options = {
+                    title: 'n = ' + n + ' simulations in ' + (end_time - start_time) / 1000. + 's; mean = ' + average(counts),
+                    hAxis: {title: 'Generations to evolve: ' + target.toUpperCase()},
+                    legend: { position: 'none' },
+                };
+                var chart = new google.visualization.Histogram(document.getElementById('histogram'));
+                chart.draw(data, options);
+            }
+            
+            function average(items) {
+                sum = 0.;
+                for (var i = 0; i < items.length; i++) {
+                    sum += items[i];
+                }
+                return sum / items.length;
+            }
+            
             // getting a random string modified from
             // http://stackoverflow.com/questions/1349404/generate-a-string-of-5-random-characters-in-javascript
             function makeid(length) {
@@ -73,7 +116,7 @@
             function do_analysis(target) {
                 target = target.toUpperCase();
                 var table = $('#generations');
-                table.html('<tr><th>Iteration</th><th>Phrase</th><th>Score</th></tr>');
+                table.html('<tr><th>Generation</th><th>Phrase</th><th>Score</th></tr>');
                 var string = makeid(target.length);
                 var score = compute_score(string, target);
                 var generation_size = $("#generationspinner").val();
@@ -86,6 +129,7 @@
                     i += 1;
                     table.append(generation_row(i, string, score, target));
                 }
+                return i;
             }
             
             function generation_row(generation, string, score, target) {
@@ -123,7 +167,12 @@
             
             $(function() {
                 $('#gobutton').button().click(function(event) {
-                    do_analysis($('#targettext').val());
+                    //do_analysis($('#targettext').val());
+                    $('#gobutton').html('<span class="ui-button-text">Running...</span>');
+                    setTimeout(function(){
+                        plot_many($('#targettext').val(), 200);
+                        $('#gobutton').html('<span class="ui-button-text">Go</span>');
+                    }, 20);
                 });
                 $('#mutationspinner').spinner();
                 $('#generationspinner').spinner();
@@ -156,12 +205,17 @@
             });
         </script>
     </head>
-    <body width="100%" height="100%">
+    <body width="100%" height="100%" style="overflow: hidden">
         <div class="leftcolumn" style="top:0; bottom:0">
             <p>
                 The <a href="http://en.wikipedia.org/wiki/Weasel_program">Weasel Program</a> is a demonstration of the power of
-                evolutionary algorithms with an appropriate <a href="http://en.wikipedia.org/wiki/Fitness_function">fitness function</a> (i.e. survival rule). These algorithms find the solution
-                much more efficiently than non-directed random mutation. See <a href="http://evoinfo.org/weasel/">here</a> for more information and another simulator.
+                <a href="http://en.wikipedia.org/wiki/Evolutionary_algorithm">evolutionary algorithms</a> with an appropriate <a href="http://en.wikipedia.org/wiki/Fitness_function">fitness function</a> (i.e. survival rule). These algorithms find the solution
+                much more efficiently than non-directed random mutation. See <a href="http://evoinfo.org/weasel/">here</a> for more information and an alternate simulator.
+            </p>
+            
+            <p>
+                Pressing "Go" below will run 200 simulations, plot the distribution of the number of generations required to evolve
+                the requested string, and display one simulation generation-by-generation.
             </p>
         
             Text to evolve toward:
@@ -171,16 +225,13 @@
             <input id="mutationspinner" name="value" value="5"/>%<br/>
             Size of each generation: <input id="generationspinner" name="value" value="100"/><br/>
             <button id="gobutton">Go</button>
-            <div class="bottom">
-                Graphical analysis will go here.<br/>
-                sdf<br/>
-                bad<br/>
-                as
+            <div id='histogram' class="bottom" width="100%">
             </div>
         </div>
-        <div class="rightcolumn" style="overflow: auto; top:0; bottom:0">
+        <div class="rightcolumn" style="overflow: auto; top:0; bottom:1em">
             <table id="generations">
             </table>
         </div>
     </body>
 </html>
+
