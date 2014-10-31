@@ -1,9 +1,9 @@
 <html>
     <head>
         <title>Weasel Program</title>
-		<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
-		<script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js"></script>
-        <link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/themes/smoothness/jquery-ui.css" type="text/css" />
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+		<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js"></script>
+        <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/themes/smoothness/jquery-ui.css" type="text/css" />
         <style>
             .leftcolumn {
                 position: absolute;
@@ -67,23 +67,22 @@
                 return allowed_chars.charAt(Math.floor(Math.random() * allowed_chars.length));
             }
             
-            function do_analysis() {
-                var html = "<table><tr><th>Iteration</th><th>Phrase</th><th>Score</th></tr>";
-                var target = targettext;
+            function do_analysis(target) {
+                target = target.toUpperCase();
+                var table = $('#generations');
+                table.html('<tr><th>Iteration</th><th>Phrase</th><th>Score</th></tr>');
                 var string = makeid(target.length);
                 var score = compute_score(string, target);
                 var generation_size = $("#generationspinner").val();
                 var mutation_rate = $("#mutationspinner").val() * 0.01;
-                html += generation_row(0, string, score);
+                table.append(generation_row(0, string, score));
                 var i = 0;
                 while (score < target.length) {
                     string = mutation_set(string, target, generation_size, mutation_rate);
                     score = compute_score(string, target);
                     i += 1;
-                    html += generation_row(i, string, score);
+                    table.append(generation_row(i, string, score));
                 }
-                html += "</table>";
-                $('#generations').html(html);
             }
             
             function generation_row(generation, string, score) {
@@ -103,31 +102,50 @@
             
             $(function() {
                 $('#gobutton').button().click(function(event) {
-                    do_analysis();
+                    do_analysis($('#targettext').val());
                 });
                 $('#mutationspinner').spinner();
                 $('#generationspinner').spinner();
                 $('#targettext').val(targettext);
-                $('#targettext').keyup(function() {
-                    console.log('change');
-                    var temptext = $('#targettext').val().toUpperCase();
-                    targettext = '';
-                    // remove unallowed characters
-                    for (var i=0; i < temptext.length; i++) {
-                        var c = temptext[i];
-                        if (allowed_chars.indexOf(c) >= 0)  {
-                            targettext += c;
-                        }
-                    }                    
-                    $('#targettext').val(targettext);
-                });
+                // code for allowing only letters and space (slightly) adapted from
+                // http://stackoverflow.com/questions/2980038/allow-text-box-only-for-letters-using-jquery
+                $("#targettext").on("keydown", function(event){
+                    // Ignore controls such as backspace
+                    var arr = [8,16,17,20,35,36,37,38,39,40,45,46];
+
+                    // allow space
+                    arr.push(32);
+
+                    // Allow letters
+                    for(var i = 65; i <= 90; i++){
+                        arr.push(i);
+                    }
+
+                    if(jQuery.inArray(event.which, arr) === -1){
+                        event.preventDefault();
+                    }
+                });                
+                
+                $('#targettext').on("input", function(){
+                    var regexp = /[^a-zA-Z ]/g;
+                    if($(this).val().match(regexp)){
+                        $(this).val( $(this).val().replace(regexp,'') );
+                    }
+                });                
             });
         </script>
     </head>
     <body width="100%" height="100%">
         <div class="leftcolumn" style="top:0; bottom:0">
+            <p>
+                The <a href="http://en.wikipedia.org/wiki/Weasel_program">Weasel Program</a> is a demonstration of the power of
+                evolutionary algorithms with an appropriate fitness function (i.e. survival rule). These algorithms find the solution
+                much more efficiently than non-directed random mutation.
+            </p>
+        
             Text to evolve toward:
-            <input type="text" id="targettext" value="" style="width:30em"></input><br/>
+            <!-- learned about text-transform style from http://stackoverflow.com/questions/3724972/how-to-change-the-input-to-uppercase-as-it-is-being-typed -->
+            <input type="text" id="targettext" value="" style="width:30em; text-transform: uppercase;"></input><br/>
             <label for="mutationspinner">Mutation rate:</label>
             <input id="mutationspinner" name="value" value="5"/>%<br/>
             Size of each generation: <input id="generationspinner" name="value" value="100"/><br/>
@@ -139,8 +157,9 @@
                 as
             </div>
         </div>
-        <div id="generations" class="rightcolumn" style="overflow: auto; top:0; bottom:0">
-            Generations list
+        <div class="rightcolumn" style="overflow: auto; top:0; bottom:0">
+            <table id="generations">
+            </table>
         </div>
     </body>
 </html>
